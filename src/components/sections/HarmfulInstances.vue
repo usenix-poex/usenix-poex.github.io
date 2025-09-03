@@ -300,7 +300,7 @@ export default {
     
     get3DPath(instruction) {
       const filename = this.getFilename(instruction)
-      return `/harmful-rlbench/3d/${filename}.gltf`
+      return `/harmful-rlbench/3d/${filename}.glb`
     },
     
     // 3D related methods moved to Simple3DViewer component
