@@ -152,15 +152,38 @@ export default {
       try {
         console.log('Loading model:', this.modelPath)
         
-        // Check if file exists
-        const response = await fetch(this.modelPath, { method: 'HEAD' })
-        if (!response.ok) {
-          throw new Error(`File not found: ${response.status}`)
+        // Test fetch to debug GitHub Pages issues
+        try {
+          const testResponse = await fetch(this.modelPath)
+          console.log('Test fetch status:', testResponse.status)
+          console.log('Content-Type:', testResponse.headers.get('content-type'))
+          const firstBytes = await testResponse.text()
+          console.log('First 100 characters:', firstBytes.substring(0, 100))
+        } catch (testError) {
+          console.error('Test fetch failed:', testError)
         }
+        
+        // Skip HEAD check on GitHub Pages as it may not be reliable
+        // Directly try to load the model and let GLTFLoader handle errors
         
         const loader = new GLTFLoader()
         const gltf = await new Promise((resolve, reject) => {
-          loader.load(this.modelPath, resolve, undefined, reject)
+          loader.load(
+            this.modelPath, 
+            resolve, 
+            (progress) => {
+              console.log('Loading progress:', progress)
+            }, 
+            (error) => {
+              console.error('GLTFLoader error:', error)
+              console.error('Error details:', {
+                message: error.message,
+                type: error.type,
+                target: error.target
+              })
+              reject(error)
+            }
+          )
         })
         
         // Clear previous model
