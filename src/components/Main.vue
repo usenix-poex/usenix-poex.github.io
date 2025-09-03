@@ -5,6 +5,7 @@ import MarkdownMeasurement from './sections/MarkdownMeasurement.vue'
 import MarkdownDesign from './sections/MarkdownDesign.vue'
 import Carousel from './sections/Carousel.vue'
 import Video from './sections/Video.vue'
+import HarmfulInstances from './sections/HarmfulInstances.vue'
 
 export default {
   components: {
@@ -14,6 +15,7 @@ export default {
     MarkdownDesign,
     Carousel,
     Video,
+    HarmfulInstances,
   }
 }
 </script>
@@ -22,6 +24,7 @@ export default {
   <Title/>
   <Abstract/>
   <MarkdownMeasurement/>
+  <HarmfulInstances/>
   <MarkdownDesign/>
   <Carousel/>
   <Video/>
