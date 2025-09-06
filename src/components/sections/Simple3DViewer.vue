@@ -74,8 +74,8 @@ export default {
           throw new Error('Container not found')
         }
         
-        const width = 600
-        const height = 400
+        const width = container.clientWidth || 600
+        const height = Math.round((container.clientWidth || 600) * 2 / 3)
         
         // Scene - use markRaw to avoid reactive proxy
         this.threeObjects.scene = markRaw(new THREE.Scene())
@@ -87,6 +87,7 @@ export default {
         
         // Renderer
         this.threeObjects.renderer = markRaw(new THREE.WebGLRenderer({ antialias: true }))
+        this.threeObjects.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
         this.threeObjects.renderer.setSize(width, height)
         container.appendChild(this.threeObjects.renderer.domElement)
         
@@ -124,6 +125,8 @@ export default {
         pointLight2.position.set(-5, 5, -5)
         this.threeObjects.scene.add(pointLight2)
         
+        // Bind animate to ensure correct this context
+        this.animate = this.animate.bind(this)
         this.animate()
         this.status = 'Scene initialization completed'
         
@@ -132,6 +135,17 @@ export default {
           this.loadModel()
         }
         
+        // Handle resize
+        this.onResize = () => {
+          if (!this.$refs.container || !this.threeObjects.renderer || !this.threeObjects.camera) return
+          const newWidth = this.$refs.container.clientWidth || 600
+          const newHeight = Math.round(newWidth * 2 / 3)
+          this.threeObjects.camera.aspect = newWidth / newHeight
+          this.threeObjects.camera.updateProjectionMatrix()
+          this.threeObjects.renderer.setSize(newWidth, newHeight)
+        }
+        window.addEventListener('resize', this.onResize)
+
       } catch (error) {
         this.error = error.message
         this.status = 'Initialization failed'
@@ -221,6 +235,9 @@ export default {
       if (this.threeObjects.animationId) {
         cancelAnimationFrame(this.threeObjects.animationId)
       }
+      if (this.onResize) {
+        window.removeEventListener('resize', this.onResize)
+      }
       
       if (this.threeObjects.renderer && this.$refs.container) {
         this.$refs.container.removeChild(this.threeObjects.renderer.domElement)
@@ -245,8 +262,8 @@ export default {
 }
 
 .viewer-container {
-  width: 600px;
-  height: 400px;
+  width: 100%;
+  max-width: 800px;
   border: 1px solid #ccc;
   margin: 0 auto;
 }
