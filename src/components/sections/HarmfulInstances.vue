@@ -240,6 +240,10 @@ export default {
   },
   
   methods: {
+    isAvailable(instance) {
+      const filename = this.getFilename(instance.instructions)
+      return this.availableFiles.includes(filename) || this.available3DFiles.includes(filename)
+    },
     async loadInstances() {
       try {
         const response = await fetch('/harmful-rlbench/harmful_instances.json')
@@ -253,11 +257,8 @@ export default {
     },
     
     updateAvailableInstances() {
-      // Consider both video and 3D availability
-      this.availableInstances = this.filteredInstances.filter(instance => {
-        const filename = this.getFilename(instance.instructions)
-        return this.availableFiles.includes(filename) || this.available3DFiles.includes(filename)
-      })
+      // Consider both video and 3D availability within current filters
+      this.availableInstances = this.filteredInstances.filter(instance => this.isAvailable(instance))
     },
     
     getFilename(instruction) {
@@ -302,20 +303,29 @@ export default {
     },
     
     selectRandomInstance() {
-      if (this.availableInstances.length > 0) {
-        const randomIndex = Math.floor(Math.random() * this.availableInstances.length)
-        const randomInstance = this.availableInstances[randomIndex]
-        
-        // Set selector values
-        this.selectedScene = randomInstance.scene
-        this.selectedCategory1 = randomInstance['category-1']
-        this.selectedCategory2 = randomInstance['category-2']
-        this.selectedInstruction = randomInstance.instructions
-        
-        // Re-filter and select
-        this.filterInstances()
-        this.selectInstance()
+      // Build a global pool ignoring current filters to ensure variety
+      const pool = this.instances.filter(inst => this.isAvailable(inst))
+      if (pool.length === 0) return
+
+      let randomInstance = pool[Math.floor(Math.random() * pool.length)]
+      // Avoid repeating the same instance if possible
+      if (this.selectedInstance && pool.length > 1) {
+        let attempts = 0
+        while (randomInstance.instructions === this.selectedInstance.instructions && attempts < 10) {
+          randomInstance = pool[Math.floor(Math.random() * pool.length)]
+          attempts++
+        }
       }
+
+      // Set selector values to match the chosen instance
+      this.selectedScene = randomInstance.scene
+      this.selectedCategory1 = randomInstance['category-1']
+      this.selectedCategory2 = randomInstance['category-2']
+      this.selectedInstruction = randomInstance.instructions
+
+      // Re-filter by the selected scene/categories and select
+      this.filterInstances()
+      this.selectInstance()
     },
     
     getVideoPath(instruction) {
