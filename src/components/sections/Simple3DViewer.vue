@@ -41,7 +41,8 @@ export default {
       renderer: null,
       controls: null,
       model: null,
-      animationId: null
+      animationId: null,
+      lastMaxDim: null
     }
     
     return {
@@ -145,6 +146,21 @@ export default {
           this.threeObjects.renderer.setSize(newWidth, newHeight)
         }
         window.addEventListener('resize', this.onResize)
+        // Resize when container becomes visible or changes size
+        if (typeof ResizeObserver !== 'undefined') {
+          this.resizeObserver = new ResizeObserver(entries => {
+            if (!this.$refs.container || !this.threeObjects.renderer || !this.threeObjects.camera) return
+            const rect = entries[0].contentRect
+            const w = Math.max(1, Math.floor(rect.width))
+            const h = Math.max(1, Math.round(w * 2 / 3))
+            this.threeObjects.camera.aspect = w / h
+            this.threeObjects.camera.updateProjectionMatrix()
+            this.threeObjects.renderer.setSize(w, h)
+          })
+          this.resizeObserver.observe(this.$refs.container)
+        }
+        // Ensure correct size after mount/layout
+        this.onResize()
 
       } catch (error) {
         this.error = error.message
@@ -192,7 +208,8 @@ export default {
         
         // Adjust camera position
         const maxDim = Math.max(size.x, size.y, size.z)
-        const distance = maxDim * 2
+        this.threeObjects.lastMaxDim = maxDim
+        const distance = maxDim * 1.5
         this.threeObjects.camera.position.set(distance, distance, distance)
         this.threeObjects.camera.lookAt(0, 0, 0)
         this.threeObjects.controls.target.set(0, 0, 0)
@@ -212,7 +229,9 @@ export default {
     
     resetView() {
       if (this.threeObjects.camera && this.threeObjects.controls) {
-        this.threeObjects.camera.position.set(5, 5, 5)
+        const maxDim = this.threeObjects.lastMaxDim || 5
+        const distance = maxDim * 1.5
+        this.threeObjects.camera.position.set(distance, distance, distance)
         this.threeObjects.camera.lookAt(0, 0, 0)
         this.threeObjects.controls.target.set(0, 0, 0)
         this.threeObjects.controls.update()
@@ -237,6 +256,10 @@ export default {
       }
       if (this.onResize) {
         window.removeEventListener('resize', this.onResize)
+      }
+      if (this.resizeObserver) {
+        this.resizeObserver.disconnect()
+        this.resizeObserver = null
       }
       
       if (this.threeObjects.renderer && this.$refs.container) {
@@ -263,9 +286,8 @@ export default {
 
 .viewer-container {
   width: 100%;
-  max-width: 800px;
   border: 1px solid #ccc;
-  margin: 0 auto;
+  margin: 0;
 }
 
 .controls {
